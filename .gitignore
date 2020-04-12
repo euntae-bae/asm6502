@@ -1,4 +1,6 @@
 *.exe
 *.bin
+*.fns
+*.nes
 bubble
 asm6f
