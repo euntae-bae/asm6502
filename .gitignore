@@ -2,5 +2,6 @@
 *.bin
 *.fns
 *.nes
+*.deb
 bubble
 asm6f
