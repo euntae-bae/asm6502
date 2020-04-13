@@ -3,5 +3,6 @@
 *.fns
 *.nes
 *.deb
+*.nes.deb
 bubble
 asm6f
