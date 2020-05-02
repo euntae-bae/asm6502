@@ -1,6 +1,3 @@
-; nes-spires-lab1.asm 의 스프라이트 데이터를 직접 어셈블리 명령어로 적재하는 대신에
-; 어셈블러 지시자를 이용하여 $0200에 정의해도 정상 작동 하는지 확인한다.
-; 결과: 화면에 스프라이트가 출력되지 않는다.
     .inesprg 1
     .ineschr 1
     .inesmap 0
@@ -34,8 +31,8 @@ clrmem:
     sta $0500, x
     sta $0600, x
     sta $0700, x
-    ;lda #$fe
-    ;sta $0200, x    ; move all sprites off screen
+    lda #$fe
+    sta $0200, x    ; move all sprites off screen
     inx
     bne clrmem
 
@@ -43,40 +40,27 @@ vblankwait2:
     bit $2002
     bpl vblankwait2
 
-LoadPalettes:
+loadPalettes:
     lda $2002   ; PPU 상태 레지스터를 읽어서 high/low 래치를 리셋한다.
     lda #$3f
     sta $2006   ; PPU 메모리 주소로 지정할 $3f00의 상위 바이트를 쓴다. ($2006: PPUADDR)
     lda #$00
     sta $2006   ; $3f00의 하위 바이트를 쓴다.
     ldx #$00
-LoadPalettesLoop:
+.loop:
     lda palette, x
     sta $2007   ; PPU에 데이터를 쓴다. ($2007: PPUDATA)
     inx
     cpx #$20    ; 32바이트 데이터(팔레트는 각각 16바이트로, 배경과 스프라이트에 하나씩 사용하여 32($20)바이트 사용)를 모두 썼는지 확인한다.
-    bne LoadPalettesLoop    ; 만약 x == $20이고, 32 바이트 데이터가 전부 복사되면 팔레트 데이터 전송(CPU 메모리->PPU)은 완료된 것이다.
+    bne .loop    ; 만약 x == $20이고, 32 바이트 데이터가 전부 복사되면 팔레트 데이터 전송(CPU 메모리->PPU)은 완료된 것이다.
 
-    ; 대개 스프라이트 데이터는 내부 RAM이 있는 $0200-$02ff 영역을 사용한다.
-    ; 여기 있는 데이터는 DMA를 사용하여 PPU의 OAM(Object Attribute Memory 또는 스프라이트 메모리) 영역으로 복사한다.
-    ; 각각의 스프라이트는 4바이트 데이터를 가진다.
-    ; 바이트 0: y좌표 / 바이트 1: 타일 인덱스 번호 / 바이트 2: 속성(뒤집기, 우선순위, 팔레트 등) / 바이트 3: x좌표
-    
-    ; 바이트2
-    ; bit 7: flip vertically
-    ; bit 6: flip horizontally
-    ; bit 5: priority
-    ; bit 2, 3, 4: unimplemented
-    ; bit 1, 0: palette of sprite (팔레트의 색상그룹 선택)
-
-    ; 수정된 코드
-    loadSprites:
+loadSprites:
     ldx #$00
 .loop:
     lda sprites, x
     sta $0200, x
     inx
-    cpx #32
+    cpx #40
     bne .loop
 
     lda #%10000000  ; enable NMI, 스프라이트(스프라이트의 타일 패턴)는 패턴테이블 0로부터 가져온다.
@@ -97,22 +81,28 @@ NMI:
     rti
 ;;;;;;;;;;;;;;;;;;;;;;
 
-    .org $0200
-sprites:
-    .db $78, $00, $01, $78
-    .db $78, $01, $01, $80
-    .db $80, $02, $01, $78
-    .db $80, $03, $01, $80
-    .db $88, $04, $01, $78
-    .db $88, $05, $01, $80
-    .db $90, $06, $01, $78
-    .db $90, $07, $01, $80
-
     .bank 1
     .org $e000
+sprites:
+    ; row 1
+    .db $70, $00, $00, $70
+    .db $70, $01, $00, $78
+    ; row 2
+    .db $78, $02, $00, $70
+    .db $78, $03, $00, $78
+    ; row 3 - 1
+    .db $80, $04, $00, $70
+    .db $80, $05, $00, $78
+    ; row 4
+    .db $88, $06, $00, $70
+    .db $88, $07, $00, $78
+    ; row 3 - 2
+    .db $80, $08, $01, $70
+    .db $80, $09, $01, $78
+
 palette:
-    .db $22, $29, $1a, $0f, $22, $35, $36, $37, $22, $39, $3a, $3b, $22, $3d, $3e, $0f  ; background
-    .db $0f, $1c, $15, $14, $00, $16, $27, $18, $0f, $1c, $15, $14, $0f, $02, $38, $3c  ; sprite
+    .db $1c, $2b, $0b, $0f, $22, $35, $36, $37, $22, $39, $3a, $3b, $22, $3d, $3e, $0f  ; background
+    .db $1c, $01, $20, $0f, $1c, $29, $27, $0f, $1c, $01, $27, $0f, $1c, $01, $20, $0f  ; sprite
 
     ; 인터럽트 벡터 설정
     .org $fffa
@@ -122,4 +112,4 @@ palette:
 
     .bank 2
     .org $0000
-    .incbin "mario.chr"
+    .incbin "asriel.chr"
